@@ -3,7 +3,7 @@ import { Check, Pencil, X } from "lucide-react";
 
 interface EditableFieldProps {
   value: string | number;
-  type?: "text" | "number";
+  type?: "text" | "number" | "date";
   onSave: (value: string | number) => void;
   displayFormatter?: (value: string | number) => string;
   className?: string;

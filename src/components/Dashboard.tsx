@@ -53,7 +53,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
@@ -144,6 +144,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
           <div className="p-3 bg-rose-50 text-rose-600 rounded-lg">
             <DollarSign className="h-6 w-6" />
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Data do Evento
+            </p>
+            <h3 className="text-2xl font-bold text-slate-800 mt-1">
+              <EditableField
+                value={party.event_date}
+                type="date"
+                onSave={(value) => onUpdateParty({ event_date: String(value) })}
+                displayFormatter={(value) =>
+                  new Date(`${value}T00:00:00`).toLocaleDateString("pt-BR")
+                }
+              />
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">Contagem regressiva</p>
+          </div>
+          <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg">
+            <Calendar className="h-6 w-6" />
           </div>
         </div>
       </div>
