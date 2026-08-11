@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { AddParticipantModal } from "./components/AddParticipantModal";
 import { Dashboard } from "./components/Dashboard";
 import { EditableField } from "./components/EditableField";
 import { MonthlyMatrixTable } from "./components/MonthlyMatrixTable";
@@ -75,6 +76,8 @@ function App() {
     participantId: string;
     monthNumber: number;
   } | null>(null);
+  const [isAddParticipantModalOpen, setIsAddParticipantModalOpen] =
+    useState(false);
 
   const installmentSchedule = useMemo(() => {
     return calculateInstallmentSchedule(
@@ -112,14 +115,11 @@ function App() {
     });
   };
 
-  const handleAddParticipant = () => {
-    const name = prompt("Nome do novo amigo:");
-    if (name) {
-      setParticipants((prev) => [
-        ...prev,
-        { id: Math.random().toString(), party_id: party.id, name },
-      ]);
-    }
+  const handleAddParticipant = (data: { name: string; phone?: string }) => {
+    setParticipants((prev) => [
+      ...prev,
+      { id: Math.random().toString(), party_id: party.id, ...data },
+    ]);
   };
 
   const handleDeleteParticipant = (id: string) => {
@@ -171,9 +171,15 @@ function App() {
             setPaymentModalData({ participantId, monthNumber })
           }
           onOpenDetailModal={() => {}}
-          onAddParticipant={handleAddParticipant}
+          onAddParticipant={() => setIsAddParticipantModalOpen(true)}
           onDeleteParticipant={handleDeleteParticipant}
           onExportCSV={() => exportToCSV(summaries, party.number_of_months)}
+        />
+
+        <AddParticipantModal
+          isOpen={isAddParticipantModalOpen}
+          onClose={() => setIsAddParticipantModalOpen(false)}
+          onAddParticipant={handleAddParticipant}
         />
 
         {paymentModalData && (
