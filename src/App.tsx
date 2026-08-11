@@ -1,204 +1,71 @@
-import { useState, useMemo } from "react";
-import { AddParticipantModal } from "./components/AddParticipantModal";
-import { Dashboard } from "./components/Dashboard";
-import { EditableField } from "./components/EditableField";
-import { MonthlyMatrixTable } from "./components/MonthlyMatrixTable";
-import { PaymentModal } from "./components/PaymentModal";
-import {
-  calculateInstallmentSchedule,
-  computeParticipantSummary,
-} from "./utils/calculations";
-import { exportToCSV } from "./utils/exportCsv";
-import { Party, Participant, Payment } from "./types/database";
-import { PartyPopper } from "lucide-react";
+import React from "react";
+import { Navigate, Route, BrowserRouter, Routes } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
+import { useAuth } from "./hooks/useAuth";
+import { LoginPage } from "./pages/LoginPage";
+import { PartiesListPage } from "./pages/PartiesListPage";
+import { PartyDashboardPage } from "./pages/PartyDashboardPage";
+import { PublicPartyPage } from "./pages/PublicPartyPage";
 
-// DADOS MOCKADOS INICIAIS
-const initialParty: Party = {
-  id: "1",
-  admin_id: "admin",
-  name: "Festa de Final de Ano - Turma 2026",
-  event_date: "2026-12-20",
-  total_amount: 1617,
-  number_of_months: 4,
-  start_date: "2026-09-15",
-  due_day: 10,
-  share_token: "123",
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const { isAuthenticated, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-slate-500">
+        Carregando...
+      </div>
+    );
+  }
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <>{children}</>;
 };
 
-const initialParticipants: Participant[] = [
-  { id: "p1", party_id: "1", name: "João Silva", phone: "11999999999" },
-  { id: "p2", party_id: "1", name: "Maria Oliveira", phone: "11888888888" },
-  { id: "p3", party_id: "1", name: "Pedro Santos" },
-];
-
-const initialPayments: Payment[] = [
-  {
-    id: "pm1",
-    participant_id: "p1",
-    month_number: 1,
-    amount_due: 1000,
-    amount_paid: 1000,
-    status: "Pago",
-  },
-  {
-    id: "pm2",
-    participant_id: "p2",
-    month_number: 1,
-    amount_due: 1000,
-    amount_paid: 1000,
-    status: "Pago",
-  },
-  {
-    id: "pm3",
-    participant_id: "p2",
-    month_number: 2,
-    amount_due: 1000,
-    amount_paid: 1000,
-    status: "Pago",
-  },
-  {
-    id: "pm4",
-    participant_id: "p3",
-    month_number: 1,
-    amount_due: 1000,
-    amount_paid: 500,
-    status: "Parcial",
-  },
-];
-
-function App() {
-  const [party, setParty] = useState<Party>(initialParty);
-  const [participants, setParticipants] =
-    useState<Participant[]>(initialParticipants);
-  const [payments, setPayments] = useState<Payment[]>(initialPayments);
-
-  const [paymentModalData, setPaymentModalData] = useState<{
-    participantId: string;
-    monthNumber: number;
-  } | null>(null);
-  const [isAddParticipantModalOpen, setIsAddParticipantModalOpen] =
-    useState(false);
-
-  const installmentSchedule = useMemo(() => {
-    return calculateInstallmentSchedule(
-      party.total_amount,
-      participants.length,
-      party.number_of_months,
-    );
-  }, [party, participants]);
-
-  const summaries = useMemo(() => {
-    return participants.map((p) => {
-      const pPayments = payments.filter(
-        (payment) => payment.participant_id === p.id,
-      );
-      return computeParticipantSummary(p, pPayments, installmentSchedule);
-    });
-  }, [participants, payments, installmentSchedule]);
-
-  const handleSavePayment = (data: Omit<Payment, "id" | "status">) => {
-    setPayments((prev) => {
-      const existing = prev.find(
-        (p) =>
-          p.participant_id === data.participant_id &&
-          p.month_number === data.month_number,
-      );
-      if (existing) {
-        return prev.map((p) =>
-          p.id === existing.id ? { ...p, ...data, status: "Pago" } : p,
-        );
-      }
-      return [
-        ...prev,
-        { ...data, id: Math.random().toString(), status: "Pago" } as Payment,
-      ];
-    });
-  };
-
-  const handleAddParticipant = (data: { name: string; phone?: string }) => {
-    setParticipants((prev) => [
-      ...prev,
-      { id: Math.random().toString(), party_id: party.id, ...data },
-    ]);
-  };
-
-  const handleDeleteParticipant = (id: string) => {
-    setParticipants((prev) => prev.filter((p) => p.id !== id));
-    setPayments((prev) => prev.filter((p) => p.participant_id !== id));
-  };
-
-  const handleUpdatePartyName = (value: string | number) => {
-    setParty((prev) => ({ ...prev, name: String(value) }));
-  };
-
-  const handleUpdateParty = (updates: Partial<Party>) => {
-    setParty((prev) => ({ ...prev, ...updates }));
-  };
+const AppRoutes: React.FC = () => {
+  const { isAuthenticated, loading } = useAuth();
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        <header className="flex items-center space-x-3 mb-8 bg-indigo-600 text-white p-6 rounded-2xl shadow-md">
-          <PartyPopper className="h-10 w-10 text-indigo-200" />
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight">
-              <EditableField
-                value={party.name}
-                onSave={handleUpdatePartyName}
-                className="text-white"
-                inputClassName="text-2xl font-extrabold bg-white"
-              />
-            </h1>
-            <p className="text-indigo-200 mt-1">
-              Gestão Financeira Descomplicada - FestPay
-            </p>
-          </div>
-        </header>
+    <Routes>
+      <Route
+        path="/login"
+        element={
+          loading ? null : isAuthenticated ? (
+            <Navigate to="/parties" replace />
+          ) : (
+            <LoginPage />
+          )
+        }
+      />
+      <Route path="/festa/:shareToken" element={<PublicPartyPage />} />
+      <Route
+        path="/parties"
+        element={
+          <ProtectedRoute>
+            <PartiesListPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/parties/:partyId"
+        element={
+          <ProtectedRoute>
+            <PartyDashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="*" element={<Navigate to="/parties" replace />} />
+    </Routes>
+  );
+};
 
-        <Dashboard
-          party={party}
-          summaries={summaries}
-          installmentSchedule={installmentSchedule}
-          onUpdateParty={handleUpdateParty}
-        />
-
-        <MonthlyMatrixTable
-          summaries={summaries}
-          numberOfMonths={party.number_of_months}
-          installmentSchedule={installmentSchedule}
-          isAdmin={true}
-          onOpenPaymentModal={(participantId, monthNumber) =>
-            setPaymentModalData({ participantId, monthNumber })
-          }
-          onOpenDetailModal={() => {}}
-          onAddParticipant={() => setIsAddParticipantModalOpen(true)}
-          onDeleteParticipant={handleDeleteParticipant}
-          onExportCSV={() => exportToCSV(summaries, party.number_of_months)}
-        />
-
-        <AddParticipantModal
-          isOpen={isAddParticipantModalOpen}
-          onClose={() => setIsAddParticipantModalOpen(false)}
-          onAddParticipant={handleAddParticipant}
-        />
-
-        {paymentModalData && (
-          <PaymentModal
-            isOpen={true}
-            onClose={() => setPaymentModalData(null)}
-            participant={
-              summaries.find((s) => s.id === paymentModalData.participantId) ||
-              null
-            }
-            monthNumber={paymentModalData.monthNumber}
-            expectedAmount={
-              installmentSchedule[paymentModalData.monthNumber - 1] || 0
-            }
-            onSavePayment={handleSavePayment}
-          />
-        )}
-      </div>
-    </div>
+function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

@@ -47,3 +47,36 @@ export interface Expense {
   amount: number;
   is_paid: boolean;
 }
+
+export interface AppUser {
+  uid: string;
+  email: string;
+  created_at?: string;
+}
+
+// Public, non-sensitive subset of a Party, exposed via /public_parties/{share_token}
+// so a party can be shared through a link without exposing admin data.
+export interface PublicParty {
+  party_id: string;
+  name: string;
+  event_date: string;
+  total_amount: number;
+  number_of_months: number;
+  start_date: string;
+  due_day: number;
+  share_token: string;
+}
+
+export interface PartySummary {
+  total_amount: number;
+  total_collected: number;
+  total_pending: number;
+  total_expenses: number;
+  expenses_paid: number;
+  expenses_pending: number;
+  balance: number;
+  participant_count: number;
+  participants_paid: number;
+  participants_partial: number;
+  participants_pending: number;
+}

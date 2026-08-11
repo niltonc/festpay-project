@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // True when the caller is the admin of the party identified by partyId.
+    function isPartyAdmin(partyId) {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/parties/$(partyId)).data.admin_id == request.auth.uid;
+    }
+
+    // users/{uid} - profile document created on first sign-in.
+    match /users/{userId} {
+      allow read, update: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    // parties/{partyId} - only the owning admin can read/write. admin_id can
+    // never be changed to another user's uid.
+    match /parties/{partyId} {
+      allow read: if isSignedIn() && resource.data.admin_id == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.admin_id == request.auth.uid;
+      allow update: if isSignedIn()
+        && resource.data.admin_id == request.auth.uid
+        && request.resource.data.admin_id == resource.data.admin_id;
+      allow delete: if isSignedIn() && resource.data.admin_id == request.auth.uid;
+
+      match /participants/{participantId} {
+        allow read, write: if isPartyAdmin(partyId);
+
+        match /payments/{paymentId} {
+          allow read, write: if isPartyAdmin(partyId);
+        }
+      }
+
+      match /expenses/{expenseId} {
+        allow read, write: if isPartyAdmin(partyId);
+      }
+    }
+
+    // public_parties/{shareToken} - public read-only, non-sensitive subset of
+    // a party used for share links. Only the party's admin (verified via a
+    // cross-document get()) may create/update/delete the public copy.
+    match /public_parties/{shareToken} {
+      allow read: if true;
+      allow create, update: if isSignedIn()
+        && get(/databases/$(database)/documents/parties/$(request.resource.data.party_id)).data.admin_id == request.auth.uid;
+      allow delete: if isSignedIn()
+        && get(/databases/$(database)/documents/parties/$(resource.data.party_id)).data.admin_id == request.auth.uid;
+    }
+  }
+}
+
+
