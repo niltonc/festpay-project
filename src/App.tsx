@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { AddParticipantModal } from "./components/AddParticipantModal";
 import { Dashboard } from "./components/Dashboard";
 import { EditableField } from "./components/EditableField";

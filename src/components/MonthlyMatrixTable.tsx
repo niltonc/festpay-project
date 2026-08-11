@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { ParticipantSummary, Payment } from "../types/database";
-import { Search, Plus, Trash2, Eye, Download } from "lucide-react";
+import { Search, Plus, Trash2, Download } from "lucide-react";
 
 interface MonthlyMatrixTableProps {
   summaries: ParticipantSummary[];
@@ -20,7 +20,6 @@ export const MonthlyMatrixTable: React.FC<MonthlyMatrixTableProps> = ({
   installmentSchedule,
   isAdmin,
   onOpenPaymentModal,
-  onOpenDetailModal,
   onAddParticipant,
   onDeleteParticipant,
   onExportCSV,
