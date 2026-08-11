@@ -14,6 +14,7 @@ interface DashboardProps {
   summaries: ParticipantSummary[];
   installmentSchedule: number[];
   onUpdateParty: (updates: Partial<Party>) => void;
+  readOnly?: boolean;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -21,6 +22,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   summaries,
   installmentSchedule,
   onUpdateParty,
+  readOnly = false,
 }) => {
   const participantCount = summaries.length;
   const individualTotal =
@@ -89,6 +91,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     minimumFractionDigits: 2,
                   })
                 }
+                readOnly={readOnly}
               />
             </h3>
             <p className="text-xs text-slate-500 mt-1">
@@ -99,6 +102,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 onSave={(value) =>
                   onUpdateParty({ number_of_months: Number(value) })
                 }
+                readOnly={readOnly}
               />
             </p>
           </div>
@@ -157,6 +161,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 value={party.event_date}
                 type="date"
                 onSave={(value) => onUpdateParty({ event_date: String(value) })}
+                readOnly={readOnly}
                 displayFormatter={(value) =>
                   new Date(`${value}T00:00:00`).toLocaleDateString("pt-BR")
                 }

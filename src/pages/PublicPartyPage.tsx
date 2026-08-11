@@ -1,16 +1,37 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { PartyPopper } from "lucide-react";
+import { Copy, Check, PartyPopper } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { getPartyByShareToken } from "../services/firebase/party.service";
-import type { PublicParty } from "../types/database";
+import { subscribeToParticipants } from "../services/firebase/participant.service";
+import { subscribeToPayments } from "../services/firebase/payment.service";
+import { Dashboard } from "../components/Dashboard";
+import { MonthlyMatrixTable } from "../components/MonthlyMatrixTable";
+import {
+  calculateInstallmentSchedule,
+  computeParticipantSummary,
+} from "../utils/calculations";
+import { buildPixPayload } from "../utils/pix";
+import { exportToCSV } from "../utils/exportCsv";
+import type {
+  Party,
+  Participant,
+  Payment,
+  PublicParty,
+} from "../types/database";
 
-// Public, read-only page reachable via /festa/{share_token}. Only shows
-// non-sensitive party info (no admin_id, no participant/payment data).
+// Public, read-only page reachable via /festa/{share_token}. Shows the same
+// dashboard/matrix the admin sees, but with no editing affordances.
 export const PublicPartyPage: React.FC = () => {
   const { shareToken } = useParams<{ shareToken: string }>();
   const [party, setParty] = useState<PublicParty | null>(null);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [paymentsByParticipant, setPaymentsByParticipant] = useState<
+    Record<string, Payment[]>
+  >({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!shareToken) return;
@@ -23,6 +44,45 @@ export const PublicPartyPage: React.FC = () => {
       .catch((err) => setError(err.message || "Erro ao carregar a festa."))
       .finally(() => setLoading(false));
   }, [shareToken]);
+
+  useEffect(() => {
+    if (!party) return;
+    return subscribeToParticipants(party.party_id, setParticipants, (err) =>
+      setError(err.message),
+    );
+  }, [party]);
+
+  useEffect(() => {
+    if (!party) return;
+    const unsubscribers = participants.map((participant) =>
+      subscribeToPayments(party.party_id, participant.id, (payments) => {
+        setPaymentsByParticipant((prev) => ({
+          ...prev,
+          [participant.id]: payments,
+        }));
+      }),
+    );
+    return () => unsubscribers.forEach((unsub) => unsub());
+  }, [party, participants]);
+
+  const installmentSchedule = useMemo(() => {
+    if (!party) return [];
+    return calculateInstallmentSchedule(
+      party.total_amount,
+      participants.length,
+      party.number_of_months,
+    );
+  }, [party, participants]);
+
+  const summaries = useMemo(() => {
+    return participants.map((participant) =>
+      computeParticipantSummary(
+        participant,
+        paymentsByParticipant[participant.id] || [],
+        installmentSchedule,
+      ),
+    );
+  }, [participants, paymentsByParticipant, installmentSchedule]);
 
   if (loading) {
     return (
@@ -40,39 +100,80 @@ export const PublicPartyPage: React.FC = () => {
     );
   }
 
-  const perInstallment =
-    party.number_of_months > 0
-      ? party.total_amount / party.number_of_months
-      : 0;
+  // Dashboard/MonthlyMatrixTable expect a full Party; this public page never
+  // writes, so the missing admin-only fields (admin_id) are never accessed.
+  const partyForDisplay = party as unknown as Party;
+
+  const pixPayload = party.pix_key
+    ? buildPixPayload(party.pix_key, party.name)
+    : null;
+
+  function handleCopyPix() {
+    if (!party?.pix_key) return;
+    navigator.clipboard.writeText(party.pix_key);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
-        <div className="bg-indigo-600 text-white p-6 flex items-center space-x-3">
-          <PartyPopper className="h-8 w-8 text-indigo-200" />
-          <h1 className="text-xl font-extrabold">{party.name}</h1>
-        </div>
-        <div className="p-6 space-y-3 text-sm text-slate-700">
-          <p>
-            <span className="font-semibold">Data do evento:</span>{" "}
-            {new Date(`${party.event_date}T00:00:00`).toLocaleDateString(
-              "pt-BR",
-            )}
-          </p>
-          <p>
-            <span className="font-semibold">Valor total:</span> R${" "}
-            {party.total_amount.toLocaleString("pt-BR", {
-              minimumFractionDigits: 2,
-            })}
-          </p>
-          <p>
-            <span className="font-semibold">Parcelas:</span>{" "}
-            {party.number_of_months}x de R${" "}
-            {perInstallment.toLocaleString("pt-BR", {
-              minimumFractionDigits: 2,
-            })}
-          </p>
-        </div>
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        <header className="flex items-center space-x-3 bg-indigo-600 text-white p-6 rounded-2xl shadow-md">
+          <PartyPopper className="h-10 w-10 text-indigo-200" />
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight">
+              {party.name}
+            </h1>
+            <p className="text-indigo-200 mt-1">
+              Consulta pública - somente leitura
+            </p>
+          </div>
+        </header>
+
+        {party.pix_key && pixPayload && (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col sm:flex-row gap-6 items-center">
+            <QRCodeSVG value={pixPayload} size={160} />
+            <div className="flex-1 space-y-2 text-center sm:text-left">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Pagar via Pix
+              </p>
+              <p className="text-sm text-slate-700 break-all">
+                {party.pix_key}
+              </p>
+              <button
+                onClick={handleCopyPix}
+                className="inline-flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700"
+              >
+                {copied ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+                <span>{copied ? "Chave copiada!" : "Copiar chave Pix"}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        <Dashboard
+          party={partyForDisplay}
+          summaries={summaries}
+          installmentSchedule={installmentSchedule}
+          onUpdateParty={() => {}}
+          readOnly
+        />
+
+        <MonthlyMatrixTable
+          summaries={summaries}
+          numberOfMonths={party.number_of_months}
+          installmentSchedule={installmentSchedule}
+          isAdmin={false}
+          onOpenPaymentModal={() => {}}
+          onOpenDetailModal={() => {}}
+          onAddParticipant={() => {}}
+          onDeleteParticipant={() => {}}
+          onExportCSV={() => exportToCSV(summaries, party.number_of_months)}
+        />
       </div>
     </div>
   );

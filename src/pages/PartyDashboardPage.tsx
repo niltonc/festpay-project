@@ -162,7 +162,11 @@ export const PartyDashboardPage: React.FC = () => {
         <AddParticipantModal
           isOpen={isAddParticipantModalOpen}
           onClose={() => setIsAddParticipantModalOpen(false)}
-          onAddParticipant={(data) => addParticipant(data)}
+          onAddParticipant={(data) =>
+            addParticipant(data).catch((err) =>
+              alert(err.message || "Erro ao adicionar participante."),
+            )
+          }
         />
 
         {paymentModalData && partyId && (

@@ -8,6 +8,7 @@ interface EditableFieldProps {
   displayFormatter?: (value: string | number) => string;
   className?: string;
   inputClassName?: string;
+  readOnly?: boolean;
 }
 
 export const EditableField: React.FC<EditableFieldProps> = ({
@@ -17,6 +18,7 @@ export const EditableField: React.FC<EditableFieldProps> = ({
   displayFormatter,
   className = "",
   inputClassName = "",
+  readOnly = false,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState<string>(String(value));
@@ -45,6 +47,14 @@ export const EditableField: React.FC<EditableFieldProps> = ({
   };
 
   const cancel = () => setIsEditing(false);
+
+  if (readOnly) {
+    return (
+      <span className={className}>
+        {displayFormatter ? displayFormatter(value) : value}
+      </span>
+    );
+  }
 
   if (isEditing) {
     return (

@@ -8,6 +8,7 @@ export interface Party {
   start_date: string;
   due_day: number;
   share_token: string;
+  pix_key?: string;
   created_at?: string;
 }
 
@@ -27,7 +28,7 @@ export interface Payment {
   amount_paid: number;
   payment_date?: string | null;
   notes?: string | null;
-  status: 'Pago' | 'Parcial' | 'Pendente' | 'Adiantado';
+  status: "Pago" | "Parcial" | "Pendente" | "Adiantado";
   updated_at?: string;
 }
 
@@ -35,7 +36,7 @@ export interface ParticipantSummary extends Participant {
   total_due: number;
   total_paid: number;
   remaining_balance: number;
-  overall_status: 'Pago' | 'Parcial' | 'Pendente' | 'Adiantado';
+  overall_status: "Pago" | "Parcial" | "Pendente" | "Adiantado";
   payments: Record<number, Payment>;
 }
 
@@ -65,6 +66,7 @@ export interface PublicParty {
   start_date: string;
   due_day: number;
   share_token: string;
+  pix_key?: string;
 }
 
 export interface PartySummary {

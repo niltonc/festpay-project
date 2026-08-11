@@ -33,6 +33,7 @@ function fromPartyDoc(snap: QueryDocumentSnapshot<DocumentData>): Party {
     start_date: data.start_date,
     due_day: data.due_day,
     share_token: data.share_token,
+    pix_key: data.pix_key ?? undefined,
     created_at: timestampToISOString(data.created_at),
   };
 }
@@ -49,6 +50,7 @@ function toPublicSubset(
     start_date: party.start_date,
     due_day: party.due_day,
     share_token: party.share_token,
+    ...(party.pix_key ? { pix_key: party.pix_key } : {}),
   };
 }
 
@@ -78,6 +80,7 @@ export interface CreatePartyInput {
   number_of_months: number;
   start_date: string;
   due_day: number;
+  pix_key?: string;
 }
 
 export async function createParty(
@@ -93,7 +96,13 @@ export async function createParty(
       share_token: shareToken,
       ...input,
     };
-    await setDoc(partyRef, { ...party, created_at: serverTimestamp() });
+    // Firestore rejects `undefined` field values, so omit pix_key entirely when not provided.
+    const { pix_key, ...rest } = party;
+    await setDoc(partyRef, {
+      ...rest,
+      ...(pix_key ? { pix_key } : {}),
+      created_at: serverTimestamp(),
+    });
     await setDoc(doc(db, PUBLIC_PARTIES, shareToken), toPublicSubset(party));
     return party;
   } catch (error) {

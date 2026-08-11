@@ -30,10 +30,12 @@ service cloud.firestore {
       allow delete: if isSignedIn() && resource.data.admin_id == request.auth.uid;
 
       match /participants/{participantId} {
-        allow read, write: if isPartyAdmin(partyId);
+        allow read: if true;
+        allow write: if isPartyAdmin(partyId);
 
         match /payments/{paymentId} {
-          allow read, write: if isPartyAdmin(partyId);
+          allow read: if true;
+          allow write: if isPartyAdmin(partyId);
         }
       }
 

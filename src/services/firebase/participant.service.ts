@@ -45,7 +45,13 @@ export async function createParticipant(
 ): Promise<Participant> {
   try {
     const ref = doc(participantsCol(partyId));
-    await setDoc(ref, { ...input, created_at: serverTimestamp() });
+    // Firestore rejects `undefined` field values, so omit phone entirely when not provided.
+    const payload: Record<string, unknown> = {
+      name: input.name,
+      created_at: serverTimestamp(),
+    };
+    if (input.phone) payload.phone = input.phone;
+    await setDoc(ref, payload);
     return { id: ref.id, party_id: partyId, ...input };
   } catch (error) {
     throw wrapError(error);

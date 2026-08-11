@@ -11,6 +11,7 @@
   "dependencies": {
     "firebase": "^12.17.1",
     "lucide-react": "^0.323.0",
+    "qrcode.react": "^4.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.18.2"

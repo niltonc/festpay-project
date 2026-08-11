@@ -16,6 +16,7 @@ export const PartiesListPage: React.FC = () => {
   const [numberOfMonths, setNumberOfMonths] = useState(1);
   const [startDate, setStartDate] = useState("");
   const [dueDay, setDueDay] = useState(10);
+  const [pixKey, setPixKey] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
 
   async function handleCreate(e: React.FormEvent) {
@@ -29,6 +30,7 @@ export const PartiesListPage: React.FC = () => {
         number_of_months: numberOfMonths,
         start_date: startDate,
         due_day: dueDay,
+        pix_key: pixKey.trim() || undefined,
       });
       setCreating(false);
       navigate(`/parties/${party.id}`);
@@ -189,6 +191,17 @@ export const PartiesListPage: React.FC = () => {
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500">
+                    Chave Pix (opcional)
+                  </label>
+                  <input
+                    placeholder="CPF, e-mail, telefone ou chave aleatória"
+                    value={pixKey}
+                    onChange={(e) => setPixKey(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
                 </div>
                 {formError && (
                   <p className="text-sm text-rose-600">{formError}</p>
