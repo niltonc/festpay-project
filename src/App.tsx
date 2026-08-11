@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Dashboard } from "./components/Dashboard";
+import { EditableField } from "./components/EditableField";
 import { MonthlyMatrixTable } from "./components/MonthlyMatrixTable";
 import { PaymentModal } from "./components/PaymentModal";
 import {
@@ -65,7 +66,7 @@ const initialPayments: Payment[] = [
 ];
 
 function App() {
-  const [party] = useState<Party>(initialParty);
+  const [party, setParty] = useState<Party>(initialParty);
   const [participants, setParticipants] =
     useState<Participant[]>(initialParticipants);
   const [payments, setPayments] = useState<Payment[]>(initialPayments);
@@ -126,6 +127,14 @@ function App() {
     setPayments((prev) => prev.filter((p) => p.participant_id !== id));
   };
 
+  const handleUpdatePartyName = (value: string | number) => {
+    setParty((prev) => ({ ...prev, name: String(value) }));
+  };
+
+  const handleUpdateParty = (updates: Partial<Party>) => {
+    setParty((prev) => ({ ...prev, ...updates }));
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -133,7 +142,12 @@ function App() {
           <PartyPopper className="h-10 w-10 text-indigo-200" />
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight">
-              {party.name}
+              <EditableField
+                value={party.name}
+                onSave={handleUpdatePartyName}
+                className="text-white"
+                inputClassName="text-2xl font-extrabold bg-white"
+              />
             </h1>
             <p className="text-indigo-200 mt-1">
               Gestão Financeira Descomplicada - FestPay
@@ -145,6 +159,7 @@ function App() {
           party={party}
           summaries={summaries}
           installmentSchedule={installmentSchedule}
+          onUpdateParty={handleUpdateParty}
         />
 
         <MonthlyMatrixTable
